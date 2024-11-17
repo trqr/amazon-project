@@ -34,4 +34,5 @@ export function removeFromCart(productId) {
         }
     })
     cart = newCart;
+    document.querySelector(`.js-cart-container-${productId}`).remove();
 }

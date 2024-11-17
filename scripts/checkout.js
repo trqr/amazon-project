@@ -2,6 +2,7 @@ import { cart, removeFromCart } from "../data/cart.js";
 import { products } from "../data/products.js";
 import { formatCurrency } from "./utils/money.js";
 
+
 let cartSummary = "";
 
 cart.forEach((cartItem) => {
@@ -15,7 +16,7 @@ cart.forEach((cartItem) => {
     }
   })
 
-  cartSummary += `   <div class="cart-item-container">
+  cartSummary += `   <div class="cart-item-container js-cart-container-${productId}">
           <div class="delivery-date">
             Delivery date: Wednesday, June 15
           </div>
@@ -94,6 +95,5 @@ deleteButton.forEach((button) => {
   button.addEventListener("click", () => {
     const productId = button.dataset.productId;
     removeFromCart(productId);
-    console.log(cart)
   })
 })
