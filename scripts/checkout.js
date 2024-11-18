@@ -1,7 +1,6 @@
-import { cart, removeFromCart } from "../data/cart.js";
+import { cart, removeFromCart, calculateCartQuantity } from "../data/cart.js";
 import { products } from "../data/products.js";
 import { formatCurrency } from "./utils/money.js";
-
 
 let cartSummary = "";
 
@@ -90,10 +89,18 @@ cart.forEach((cartItem) => {
     .innerHTML = cartSummary;
 })
 
+function updateCartQuantity() {
+  document.querySelector('.js-return-to-home-link').innerHTML = `${calculateCartQuantity()} items`;
+}
+
+updateCartQuantity();
+
+
 const deleteButton = document.querySelectorAll('.js-delete-link');
 deleteButton.forEach((button) => {
   button.addEventListener("click", () => {
     const productId = button.dataset.productId;
     removeFromCart(productId);
+    updateCartQuantity();
   })
 })
