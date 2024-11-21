@@ -1,40 +1,33 @@
 import { cart, removeFromCart, calculateCartQuantity, saveToStorage, updateDeliveryOption } from "../../data/cart.js";
-import { products } from "../../data/products.js";
+import { products, getProduct } from "../../data/products.js";
 import { formatCurrency } from "../utils/money.js";
 import dayjs from "https://unpkg.com/dayjs@1.11.10/esm/index.js";
 import { deliveryOptions } from "../../data/deliveryOptions.js";
+import { renderPaymentSummary } from "./paymentSummary.js";
 
 const today = dayjs();
 const deliveryDate = today.add(7, "day");
-console.log(deliveryDate.format("dddd, MMMM D"));
 
 export function renderOrderSummary() {
 
-    let cartSummary = "";
+  let cartSummary = "";
 
-    cart.forEach((cartItem) => {
-        const productId = cartItem.productId;
+  cart.forEach((cartItem) => {
+    const productId = cartItem.productId;
+    const matchingProduct = getProduct(productId);
 
-        let matchingProduct;
+    const deliveryOptionId = cartItem.deliveryOptionId;
+    let numberOfDays;
 
-        products.forEach((product) => {
-            if (product.id === productId) {
-                matchingProduct = product;
-            }
-        })
+    deliveryOptions.forEach((option) => {
+      if (option.id === deliveryOptionId) {
+        numberOfDays = option.deliveryDays;
+      }
+    })
 
-        const deliveryOptionId = cartItem.deliveryOptionId;
-        let numberOfDays;
+    const dateString = today.add(numberOfDays, "day").format("dddd, MMMM D");
 
-        deliveryOptions.forEach((option) => {
-            if (option.id === deliveryOptionId) {
-                numberOfDays = option.deliveryDays;
-            }
-        })
-
-        const dateString = today.add(numberOfDays, "day").format("dddd, MMMM D");
-
-        cartSummary += `   <div class="cart-item-container js-cart-container-${productId}">
+    cartSummary += `   <div class="cart-item-container js-cart-container-${productId}">
           <div class="delivery-date">
             Delivery date: ${dateString}
           </div>
@@ -74,19 +67,19 @@ export function renderOrderSummary() {
         </div>`
 
 
-        function deliveryOptionsHTML(cartItem) {
-            let html = "";
-            deliveryOptions.forEach((deliveryOption) => {
-                const dateString = today.add(deliveryOption.deliveryDays, "day").format("dddd, MMMM D");
-                const priceString = deliveryOption.priceCents === 0
-                    ? "FREE"
-                    : `$${formatCurrency(deliveryOption.priceCents)} -`;
+    function deliveryOptionsHTML(cartItem) {
+      let html = "";
+      deliveryOptions.forEach((deliveryOption) => {
+        const dateString = today.add(deliveryOption.deliveryDays, "day").format("dddd, MMMM D");
+        const priceString = deliveryOption.priceCents === 0
+          ? "FREE"
+          : `$${formatCurrency(deliveryOption.priceCents)} -`;
 
-                const isChecked = deliveryOption.id === cartItem.deliveryOptionId
-                    ? "checked"
-                    : "";
+        const isChecked = deliveryOption.id === cartItem.deliveryOptionId
+          ? "checked"
+          : "";
 
-                html += `
+        html += `
       <div class="delivery-option js-delivery-option" data-product-id="${cartItem.productId}"
       data-delivery-option-id="${deliveryOption.id}">
         <input type="radio" ${isChecked} class="delivery-option-input" name="delivery-option-${cartItem.productId}">
@@ -100,73 +93,76 @@ export function renderOrderSummary() {
         </div>
       </div>
       `
-            })
-            return html;
-        }
-
-        document.querySelector('.js-order-summary')
-            .innerHTML = cartSummary;
-    })
-
-    function updateCartQuantity() {
-        document.querySelector('.js-return-to-home-link').innerHTML = `${calculateCartQuantity()} items`;
+      })
+      return html;
     }
 
-    updateCartQuantity();
+    document.querySelector('.js-order-summary')
+      .innerHTML = cartSummary;
+  })
+
+  function updateCartQuantity() {
+    document.querySelector('.js-return-to-home-link').innerHTML = `${calculateCartQuantity()} items`;
+  }
+
+  updateCartQuantity();
 
 
-    const deleteButton = document.querySelectorAll('.js-delete-link');
-    deleteButton.forEach((button) => {
-        button.addEventListener("click", () => {
-            const productId = button.dataset.productId;
-            removeFromCart(productId);
-            updateCartQuantity();
-        })
+  const deleteButton = document.querySelectorAll('.js-delete-link');
+  deleteButton.forEach((button) => {
+    button.addEventListener("click", () => {
+      const productId = button.dataset.productId;
+      removeFromCart(productId);
+      updateCartQuantity();
+      renderPaymentSummary();
     })
+  })
 
-    const updateButton = document.querySelectorAll(".js-update-link");
-    updateButton.forEach((button) => {
-        button.addEventListener('click', () => {
-            const productId = button.dataset.productId;
-            document.querySelector(`.js-cart-container-${productId}`).classList.add("is-editing-quantity");
-        })
+  const updateButton = document.querySelectorAll(".js-update-link");
+  updateButton.forEach((button) => {
+    button.addEventListener('click', () => {
+      const productId = button.dataset.productId;
+      document.querySelector(`.js-cart-container-${productId}`).classList.add("is-editing-quantity");
     })
+  })
 
-    const saveButton = document.querySelectorAll(".save-quantity-link");
-    saveButton.forEach((button) => {
-        button.addEventListener('click', () => {
-            const productId = button.dataset.productId;
+  const saveButton = document.querySelectorAll(".save-quantity-link");
+  saveButton.forEach((button) => {
+    button.addEventListener('click', () => {
+      const productId = button.dataset.productId;
 
-            let matchingItem;
+      let matchingItem;
 
-            cart.forEach((cartItem) => {
-                if (productId === cartItem.productId) {
-                    matchingItem = cartItem;
-                }
-            });
-            if (+document.querySelector(`.quantity-input-${productId}`).value > 0) {
-                matchingItem.quantity = +document.querySelector(`.quantity-input-${productId}`).value;
-                document.querySelector(`.js-quantity-label-${productId}`).innerHTML = matchingItem.quantity;
-                document.querySelector(`.js-cart-container-${productId}`).classList.remove("is-editing-quantity");
-            } else {
-                removeFromCart(productId);
-            }
-            updateCartQuantity();
-            saveToStorage();
-        })
+      cart.forEach((cartItem) => {
+        if (productId === cartItem.productId) {
+          matchingItem = cartItem;
+        }
+      });
+      if (+document.querySelector(`.quantity-input-${productId}`).value > 0) {
+        matchingItem.quantity = +document.querySelector(`.quantity-input-${productId}`).value;
+        document.querySelector(`.js-quantity-label-${productId}`).innerHTML = matchingItem.quantity;
+        document.querySelector(`.js-cart-container-${productId}`).classList.remove("is-editing-quantity");
+      } else {
+        removeFromCart(productId);
+      }
+      updateCartQuantity();
+      saveToStorage();
+      renderPaymentSummary();
     })
+  })
 
-    deliveryOptions.forEach((delivery) => {
+  deliveryOptions.forEach((delivery) => {
 
-    })
+  })
 
-    document.querySelectorAll('.js-delivery-option').forEach((element) => {
-        element.addEventListener('click', () => {
-            const { productId, deliveryOptionId } = element.dataset;
-            updateDeliveryOption(productId, deliveryOptionId);
-            renderOrderSummary();
-        });
+  document.querySelectorAll('.js-delivery-option').forEach((element) => {
+    element.addEventListener('click', () => {
+      const { productId, deliveryOptionId } = element.dataset;
+      updateDeliveryOption(productId, deliveryOptionId);
+      renderOrderSummary();
+      renderPaymentSummary();
     });
+  });
 };
 
 renderOrderSummary();
